@@ -1,4 +1,5 @@
 var express = require('express');
+var fortune = require('./lib/fortune');
 
 var app = express();
 
@@ -16,8 +17,7 @@ app.get('/', function(req, res){
 	res.render('home');
 });
 app.get('/about', function(req, res){
-    var randomFortune = fortunes[Math.floor(Math.random() * fortunes.length)];
-	res.render('about', {fortune: randomFortune});
+	res.render('about', { fortune: fortune.getFortune() });
 });
 
 // Пользовательская страница 404 (Обобщенный обработчик 404 (Промежуточное ПО))
@@ -36,11 +36,3 @@ app.use(function(err, req, res, next){
 app.listen(app.get('port'), function(){
 	console.log('Express started at the http://localhost:' + app.get('port') + '; press Ctrl + C to exit.');
 });
-
-var fortunes = [
-    "Победи свои страхи, или они победят тебя.",
-    "Рекам нужны истоки.",
-    "Не бойся неведомого.",
-    "Тебя ждет приятный сюрприз.",
-    "Будь проще везде, где только возможно.",
-];
