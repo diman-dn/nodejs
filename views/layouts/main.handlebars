@@ -2,15 +2,19 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Meadowlark Travel</title>
+    <title>{{title}}</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
           integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link href="css/style.css" rel="stylesheet">
+    {{#if showTests}}
+        <link href="vendor/mocha.css" rel="stylesheet">
+    {{/if}}
+    {{{_sections.head}}}
 </head>
 <body>
 <nav class="navbar justify-content-between navbar-expand-lg navbar-light bg-light">
     <a class="navbar-brand" href="/">
-        <img src="img/logo.png" alt="logo meadowlark travel" class="d-inline-block align-top" width="120"
+        <img src="/img/logo.png" alt="logo meadowlark travel" class="d-inline-block align-top" width="120"
              height="50">
     </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -27,36 +31,64 @@
             </li>
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Dropdown
+                    Туры
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="#">Action</a>
+                    <a class="dropdown-item" href="/tours/hood-river">Река Худ</a>
                     <a class="dropdown-item" href="#">Another action</a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">Something else here</a>
+                    <a class="dropdown-item" href="/tours/request-group-rate">Request group rate</a>
                 </div>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">Disabled</a>
+                <a class="nav-link" href="/contact">Контакты</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/newsletter">Подписка</a>
+            </li>
+            <li class="nav-item">
+                <a href="/contest/vacation-photo" class="btn btn-danger">Конкурс</a>
             </li>
         </ul>
         <form class="form-inline my-2 my-lg-0">
-            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-            <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Search</button>
+            <input class="form-control mr-sm-2" type="search" placeholder="Поиск" aria-label="Search">
+            <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Поиск</button>
         </form>
     </div>
 </nav>
-<div class="container">
-    {{{body}}}
+<div class="wrap">
+    <div class="container">
+        {{{body}}}
+    </div>
 </div>
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-        crossorigin="anonymous"></script>
+
+<footer class="col bg-light">
+    <p class="text-center col-12">&copy; <span id="year"></span> <a href="/">Meadowlark Travel</a></p>
+</footer>
+
+{{#if showTests}}
+    <div class="col" id="mocha"></div>
+    <script src="/vendor/mocha.js"></script>
+    <script src="/vendor/chai.js"></script>
+    <script>
+        mocha.ui('tdd');
+        var assert = chai.assert;
+    </script>
+    <script src="/qa/tests-global.js"></script>
+    {{#if pageTestsScript}}
+        <script src="{{pageTestsScript}}"></script>
+    {{/if}}
+    <script>mocha.run();</script>
+{{/if}}
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
         integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
         crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
         integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
         crossorigin="anonymous"></script>
+<script src="/js/script.js"></script>
+{{{_sections.jquery}}}
 </body>
 </html>

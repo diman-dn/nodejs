@@ -1,0 +1,50 @@
+<h2>Подпишись на нашу рассылку для получения новостей и специальных предложений!</h2>
+<div class="formContainer">
+    <form class="form-horizontal newsletterForm" role="form" action="/process?form=newsletter" method="post">
+        <input type="hidden" name="_csrf" value="{{csrf}}">
+        <div class="form-group">
+            <label for="fieldName" class="col-2 control-label">Имя</label>
+            <div class="col-4">
+                <input type="text" class="form-control" id="fieldName" name="name">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="fieldEmail" class="col-2 control-label">Электронный адрес</label>
+            <div class="col-4">
+                <input type="email" class="form-control" required id="fieldEmail" name="email">
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-offset-2 col-4">
+                <button type="submit" class="btn btn-primary">Зарегестрироваться</button>
+            </div>
+        </div>
+    </form>
+</div>
+{{#section 'jquery'}}
+    <script>
+        $(document).ready(function () {
+            $('.newsletterForm').on('submit', function (e) {
+                e.preventDefault();
+                var action = $(this).attr('action');
+                var $container = $(this).closest('.formContainer');
+                $.ajax({
+                    url: action,
+                    type: 'post',
+                    data: $(this).serialize(),
+                    success: function (result) {
+                        if(result.success){
+                            console.log(result);
+                            $container.html('<h2>Спасибо, ' + result.name +'!</h2>');
+                        } else {
+                            $container.html('Возникла проблема.');
+                        }
+                    },
+                    error: function () {
+                        $container.html('Возникла проблема.');
+                    }
+                });
+            });
+        });
+    </script>
+{{/section}}
