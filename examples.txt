@@ -1,0 +1,45 @@
+// Изменение среды только на время действия команды
+$: NODE_ENV=production node meadowlark.js
+
+// Изменение среды на постоянной основе
+$: export NODE_ENV=development
+
+// Конфигурация Nodemailer для непосредственного соединения с SMTP сервером
+
+var mailTransport = nodemailer.createTransport({
+       host: 'smtp.meadowlarktravel.com',
+       secureConnection: true, // используйте SSL
+       port: 465,
+       auth: {
+           user: credentials.meadowlarkSmtp.user,
+           pass: credentials.meadowlarkSmtp.password,
+} });
+
+Nodemail поддерживает отправку почты нескольким адресатам путем простого отделения адресатов друг от друга запятыми
+mailTransport.sendMail({
+       from: '"Meadowlark Travel" <info@meadowlarktravel.com>',
+       to: 'joe@gmail.com, "Джейн Клиент" <jane@yahoo.com>, ' +
+           'fred@hotmail.com',
+       subject: 'Ваш тур от Meadowlark Travel',
+       text: 'Спасибо за заказ поездки в Meadowlark Travel. ' +
+               'Мы ждем Вас с нетерпением!',
+   }, function(err){
+       if(err) console.error( 'Невозможно отправить письмо: ' + error );
+   });
+
+// Массовая отправка писем из массива адресатов
+// largeRecipientList — массив адресов электронной почты
+   var recipientLimit = 100;
+   for(var i=0; i<largeRecipientList.length/recipientLimit; i++){
+       mailTransport.sendMail({
+           from: '"Meadowlark Travel" <info@meadowlarktravel.com>',
+           to: largeRecipientList
+               .slice(i*recipientLimit, i*(recipientLimit+1)).join(','),
+           subject: 'Специальная цена на туристический пакет
+                       "Река Худ"!',
+           text: 'Закажите поездку по живописной реке
+                   Худ прямо сейчас!',
+       }, function(err){
+           if(err) console.error( 'Невозможно отправить письмо: ' +
+               error );
+}); }
