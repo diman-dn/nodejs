@@ -30,3 +30,12 @@ ul {
     cursor: inherit;
     display: block;
 }
+
+/* CURRENCY */
+a.currency {
+    text-decoration: none;
+}
+.currency.selected {
+    font-weight: bold;
+    font-size: 150%;
+}

@@ -6,11 +6,34 @@ var jqupload = require('jquery-file-upload-middleware');
 // Локальный файл с приватными данными
 var credentials = require('./credentials');
 var nodemailer = require('nodemailer');
+var mongoose = require('mongoose');
+var fs = require('fs');
+var Vacation = require('./models/vacation');
 
 // Подключение модуля для отправки писем (Nodemailer)
 var emailService = require('./lib/email')(credentials);
 
 var app = express();
+
+// Конфигурация БД
+var opts = {
+    server: {
+        socketOptions: { keepAlive: 1 }
+    }
+};
+switch (app.get('env')) {
+    case 'development':
+        mongoose.connect(credentials.mongo.development.connectionString, opts);
+        break;
+    case 'production':
+        mongoose.connect(credentials.mongo.production.connectionString, opts);
+        break;
+    default:
+        throw new Error('Неизвестная среда выполнения: ' + app.get('env'));
+}
+
+// Сообщаем Express про использование прокси
+app.enable('trust proxy');
 
 // Прячем информацию о сервере
 app.disable('x-powered-by');
@@ -48,6 +71,10 @@ app.set('port', process.env.PORT || 3000);
 
 app.use(express.static(__dirname + '/public'));
 
+// Работа с сеансовым хранилищем MongoDB
+// var MongoSessionStore = require('session-mongoose')(require('connect'));
+// var sessionStore = new MongoSessionStore({ url: credentials.mongo[app.get('env')].connectionString });
+
 // Включение промежуточного ПО cookie-parser, для использования кук в експресс
 app.use(require('cookie-parser')(credentials.cookieSecret));
 
@@ -56,6 +83,7 @@ app.use(require('express-session')({
     resave: false,
     saveUninitialized: false,
     secret: credentials.cookieSecret,
+    // store: sessionStore,
 }));
 
 // jQuery file upload
@@ -87,6 +115,105 @@ app.use(function (req, res, next) {
     next();
 });
 
+// Выводим в консоль номер исполнителя обрабатывающего запрос
+app.use(function (req, res, next) {
+    var cluster = require('cluster');
+    if(cluster.isWorker) console.log('Исполнитель %d получил запрос', cluster.worker.id);
+    next();
+});
+
+// Промежуточное ПО обработки запросов в домене
+app.use(function (req, res, next) {
+    // Создаем домен для этого запроса
+    var domain = require('domain').create();
+    // Обрабатываем ошибки на этом домене
+    domain.on('error', function (err) {
+        console.error('ПЕРЕХВАЧЕНА ОШИБКА ДОМЕНА\n', err.stack);
+        try {
+            // Отказобезопасный останов через 5 секунд
+            setTimeout(function () {
+                console.error('Отказобезопасный останов.');
+                process.exit(1);
+            }, 5000);
+
+            // Отключение от кластера
+            var worker = require('cluster').worker;
+            if(worker) worker.disconnect();
+            // Прекращение принятия новых запросов
+            server.close();
+
+            try {
+                // Попытка использовать маршрутизацию ошибок Express
+                next(err);
+            } catch (err) {
+                // Если маршрутизация ошибок не сработала, пробуем выдать текстовый ответ Node
+                console.error('Сбой механизма обработки ошибок Express.\n', err.stack);
+                res.statusCode = 500;
+                res.setHeader('content-type', 'text/plain');
+                res.end('Ошибка сервера.');
+            }
+        } catch (err) {
+            console.error('Не могу отправить ответ 500.\n', err.stack);
+        }
+    });
+    // Добавляем объекты запроса и ответа в домен
+    domain.add(req);
+    domain.add(res);
+
+    // Выполняем оставшуюся часть цепочки запроса в домене
+    domain.run(next);
+});
+
+// Инициализация туров в БД
+// Vacation.find(function (err, vacations) {
+//     if(err) return console.error(err);
+//     if(vacations.length) return;
+//
+//     new Vacation({
+//         name: 'Однодневный тур по реке Худ',
+//         slug: 'hood-river-day-trip',
+//         category: 'Однодневный тур',
+//         sku: 'HR199',
+//         description: 'Проведите день в плавании по реке Колумбия и насладитесь сваренным по традиционным рецептам пивом на реке Худ!',
+//         priceInCents: 9995,
+//         tags: ['однодневный тур', 'река худ', 'плавание', 'виндсерфинг', 'пивоварни'],
+//         inSeason: true,
+//         maximumGuests: 16,
+//         available: true,
+//         packagesSold: 0,
+//     }).save();
+//
+//     new Vacation({
+//         name: 'Отдых в Орегон Коуст',
+//         slug: 'oregon-coast-getaway',
+//         category: 'Отдых на выходных',
+//         sku: 'OC39',
+//         description: 'Насладитесь океанским воздухом и причудливыми прибрежными городками!',
+//         priceInCents: 269995,
+//         tags: ['отдых на выходных', 'орегон коуст', 'прогулки по пляжу'],
+//         inSeason: false,
+//         maximumGuests: 8,
+//         available: true,
+//         packagesSold: 0,
+//     }).save();
+//
+//     new Vacation({
+//         name: 'Скалолазание в Бенде',
+//         slug: 'rock-climbing-in-bend',
+//         category: 'Приключение',
+//         sku: 'B99',
+//         description: 'Пощекочите себе нервы горным восхождением на пустынной возвышенности.',
+//         priceInCents: 289995,
+//         tags: ['отдых на выходных', 'бенд', 'пустынная возвышенность', 'скалолазание'],
+//         inSeason: true,
+//         requiresWaiver: true,
+//         maximumGuests: 4,
+//         available: false,
+//         packagesSold: 0,
+//         notes: 'Гид по данному туру в настоящий момент восстанавливается после лыжной травмы.',
+//     }).save();
+// });
+
 // Промежуточное ПО для добавления объекта flash
 app.use(function (req, res, next) {
     // Если имеется экстренное сообщение, переместим его в контекст, а затем удалим
@@ -97,11 +224,6 @@ app.use(function (req, res, next) {
 
 // CSRF token
 var csrf = new Date().getTime();
-
-// Промежуточное ПО проверки туров на необходимость отказа от ответственности
-var cartValidation = require('./lib/cartValidation');
-app.use(cartValidation.checkWaivers);
-app.use(cartValidation.checkGuestCounts);
 
 app.get('/', function (req, res) {
     // Установка в подписанные куки значения юзер-агент
@@ -122,32 +244,87 @@ app.get('/contact', function (req, res) {
         title: 'Контакты Meadowlark Travel'
     });
 });
+app.post('/contact', function (req, res) {
+    if(req.body.submit) {
+        // console.log(req.body);
+        let email = req.body.email || null;
+        let subj = req.body.subject || null;
+        let body = req.body.message || null;
+        if(email && subj && body) {
+            body = '<p>' + body + '</p><br>' + '<p>Отправитель: ' + email + '</p><br>';
+            let to = credentials.adminEmail;
+            emailService.send(to, subj, body);
+            res.redirect(303, '/thank-you');
+        }
+    }
+});
 
+// Промежуточное ПО проверки туров на необходимость отказа от ответственности
+var cartValidation = require('./lib/cartValidation');
+app.use(cartValidation.checkWaivers);
+app.use(cartValidation.checkGuestCounts);
 // Корзина
 app.get('/cart', function (req, res, next) {
-    var cart = req.session.cart;
+    var cart = req.session.cart || (req.session.cart = { items: [] });
     if(!cart) next();
     res.render('cart', { cart: cart });
 });
-app.post('/cart/checkout', function (req, res) {
+app.get('/cart/add', function (req, res, next) {
+    var cart = req.session.cart || (req.session.cart = { items: [] });
+    Vacation.findOne({ sku: req.query.sku }, function (err, vacation) {
+        if(err) return next(err);
+        if(!vacation) return next(new Error('Unknown vacation SKU: ' + req.query.sku));
+        cart.items.push({
+            vacation: vacation,
+            guests: req.body.guests || 1,
+        });
+        res.redirect(303, '/cart');
+    });
+});
+app.post('/cart/add', function (req, res, next) {
+    var cart = req.session.cart || (req.session.cart = { items: [] });
+    Vacation.findOne({ sku: req.body.sku }, function (err, vacation) {
+        if(err) return next(err);
+        if(!vacation) return next(new Error('Unknown vacation SKU: ' + req.query.sku));
+        cart.items.push({
+            vacation: vacation,
+            guests: req.body.guests || 1,
+        });
+        res.redirect(303, '/cart');
+    });
+});
+app.get('/cart/checkout', function (req, res, next) {
     var cart = req.session.cart;
-    if(!cart) next(new Error('Корзина не существует.'));
+    if(!cart) next();
+    res.render('cart-checkout');
+});
+
+app.get('/cart/thank-you', function(req, res){
+    res.render('cart-thank-you', { cart: req.session.cart });
+});
+app.get('/email/cart/thank-you', function(req, res){
+    res.render('email/cart-thank-you', { cart: req.session.cart, layout: null });
+});
+app.post('/cart/checkout', function(req, res){
+    var cart = req.session.cart;
+    if(!cart) next(new Error('Cart does not exist.'));
     var name = req.body.name || '', email = req.body.email || '';
-    // Проверка вводимых данных
-    if(!email.match(VALID_EMAIL_REGEX))
-        return res.next(new Error('Некорректный адрес электронной почты.'));
-    // Присваиваем случайный идентификатор корзины
-    // При обычных условиях мы бы использовали здесь идентификатор из БД
+    // input validation
+    if(!email.match(VALID_EMAIL_REGEX)) return res.next(new Error('Invalid email address.'));
+    // assign a random cart ID; normally we would use a database ID here
     cart.number = Math.random().toString().replace(/^0\.0*/, '');
     cart.billing = {
         name: name,
         email: email,
     };
-    res.render('email/cart-thank-you', { layout: null, cart: cart }, function (err, html) {
-        if(err) console.log('Ошибка в шаблоне письма!');
-        let subject = 'Спасибо за заказ поездки в Meadowlark Travel';
-        emailService.send(cart.billing.email, subject, html);
-    });
+    res.render('email/cart-thank-you',
+        { layout: null, cart: cart }, function(err,html){
+            if( err ) console.log('error in email template');
+            emailService.send(cart.billing.email,
+                'Thank you for booking your trip with Meadowlark Travel!',
+                html);
+        }
+    );
     res.render('cart-thank-you', { cart: cart });
 });
 
@@ -240,6 +417,83 @@ app.post('/newsletter', function (req, res) {
     });
 });
 
+// Контроллер для задания валюты
+app.get('/set-currency/:currency', function (req, res) {
+    req.session.currency = req.params.currency;
+    return res.redirect(303, '/vacations');
+});
+function convertFromUSD(value, currency) {
+    switch (currency) {
+        case 'USD': return value * 1; break;
+        case 'GBP': return value * 0.6; break;
+        case 'BTC': return value * 0.0023707918444761; break;
+        default: return NaN;
+    }
+}
+
+// Контроллеры туров
+app.get('/vacations', function (req, res) {
+    Vacation.find({ available: true }, function (err, vacations) {
+        var currency = req.session.currency || 'USD';
+        var context = {
+            currency: currency,
+            vacations: vacations.map(function (vacation) {
+                return {
+                    sku: vacation.sku,
+                    name: vacation.name,
+                    description: vacation.description,
+                    inSeason: vacation.inSeason,
+                    price: convertFromUSD(vacation.priceInCents / 100, currency),
+                    qty: vacation.qty,
+                }
+            })
+        };
+        switch (currency) {
+            case 'USD': context.currencyUSD = 'selected'; break;
+            case 'GBP': context.currencyGBP = 'selected'; break;
+            case 'BTC': context.currencyBTC = 'selected'; break;
+        }
+        res.render('vacations', context);
+    });
+});
+app.get('/vacation/:vacation', function (req, res, next) {
+    Vacation.findOne({ slug: req.params.vacation }, function (err, vacation) {
+        if(err) return next(err);
+        if(!vacation) return next();
+        res.render('vacation', { vacation: vacation });
+    });
+});
+
+// Контроллер для подписки на уведомлении об открытии сезона
+var VacationInSeasonListener = require('./models/vacationInSeasonListener');
+app.get('/notify-me-when-in-season', function (req, res) {
+    res.render('notify-me-when-in-season', { sku: req.query.sku });
+});
+app.post('/notify-me-when-in-season', function (req, res) {
+    VacationInSeasonListener.update(
+        { email: req.body.email },
+        { $push: { skus: req.body.sku } },
+        { upsert: true },
+        function (err) {
+            if(err) {
+                console.error(err.stack);
+                req.session.flash = {
+                    type: 'danger',
+                    intro: 'Ой!',
+                    message: 'При обработке Вашего запроса произошла ошибка!',
+                };
+                return res.redirect(303, '/vacations');
+            }
+            req.session.flash = {
+                type: 'success',
+                intro: 'Спасибо!',
+                message: 'Вы будете оповещены, когда наступит сезон для этого тура.',
+            };
+            return res.redirect(303, '/vacations');
+        }
+    );
+});
+
 // Контроллеры для страницы конукурса с загрузкой фото
 app.get('/contest/vacation-photo', function (req, res) {
     var now = new Date();
@@ -248,19 +502,43 @@ app.get('/contest/vacation-photo', function (req, res) {
         month: now.getMonth()
     });
 });
+// Проверяем, существует ли каталог
+var dataDir = __dirname + '/data';
+var vacationPhotoDir = dataDir + '/vacation-photo';
+fs.existsSync(dataDir) || fs.mkdirSync(dataDir);
+fs.existsSync(vacationPhotoDir) || fs.mkdirSync(vacationPhotoDir);
+function saveContestEntry(contestName, email, year, month, photoPath) {
+    // TODO
+}
 app.post('/contest/vacation-photo/:year/:month', function (req, res) {
     var form = new formidable.IncomingForm();
     form.parse(req, function (err, fields, files) {
         if(err) {
-            // Перед редиректом на страницу ошибки, отправляем письмо админу
-            emailService.emailError('Загрузка фото для конкурса не удалась!', __filename, err);
-            return res.redirect(303, '/error');
+            res.session.flash = {
+                type: 'danger',
+                intro: 'Ой!',
+                message: 'Во время обработки отправленной Вами формы произошла ошибка. Пожалуста, попробуйте еще раз.',
+            };
+            return res.redirect(303, '/contest/vacation-photo');
         }
-        console.log('received fields: ');
-        console.log(fields);
-        console.log('received files: ');
-        console.log(files);
-        res.redirect(303, '/thank-you');
+        // console.log('received fields: ');
+        // console.log(fields);
+        // console.log('received files: ');
+        // console.log(files);
+
+        var photo = files.photo;
+        var dir = vacationPhotoDir + '/' + Date.now();
+        var path = dir + '/' + photo.name;
+        fs.mkdirSync(dir);
+        fs.renameSync(photo.path, dir + '/' + photo.name);
+        saveContestEntry('vacation-photo', fields.email, req.params.year, req.params.month, path);
+        req.session.flash = {
+            type: 'success',
+            intro: 'Удачи!',
+            message: 'Вы стали участником конкурса.',
+        };
+
+        res.redirect(303, '/contest/vacation-photo/entries');
     });
 });
 
@@ -313,9 +591,18 @@ app.use(function (err, req, res, next) {
     });
 });
 
-app.listen(app.get('port'), function () {
-    console.log('Express запущен в режиме ' + app.get('env') + ' по адресу http://localhost:' + app.get('port') + '; нажмите Ctrl + C для завершения.');
-});
+function startServer() {
+    app.listen(app.get('port'), function () {
+        console.log('Express запущен в режиме ' + app.get('env') + ' по адресу http://localhost:' + app.get('port') + '; нажмите Ctrl + C для завершения.');
+    });
+}
+if(require.main === module) {
+    // Приложение запускается непосредственно, запускаем сервер
+    startServer();
+} else {
+    // Приложение импортируется как модуль, экспортируем функцию
+    module.exports = startServer;
+}
 
 // Фиктивные данные о погоде для "виджета" (Заглушка)
 function getWeatherData() {
