@@ -43,3 +43,37 @@ mailTransport.sendMail({
            if(err) console.error( 'Невозможно отправить письмо: ' +
                error );
 }); }
+
+// Страницы сотрудников, если имени нет в списке, то 404
+var staff = {
+       mitch: { bio: 'Митч - человек, который прикроет вашу спину ' +
+           'во время драки в баре.' },
+       madeline: { bio: 'Мадлен — наш специалист по Орегону.' },
+       walt: { bio: 'Уолт — наш специалист по пансионату Орегон Коуст.' },
+   };
+   app.get('/staff/:name', function(req, res){
+       var info = staff[req.params.name];
+       if(!info) return next(); // в конечном счете передаст
+                               // управление обработчику кода 404
+           res.render('staffer', info);
+})
+// Список сотрудников по городам и именам
+var staff = {
+       portland: {
+           mitch: { bio: 'Митч - человек, который прикроет вашу спину ' +
+               'во время драки в баре.' },
+           madeline: { bio: 'Мадлен — наш специалист по Орегону.' },
+}, bend: {
+           walt: { bio: 'Уолт — наш специалист по пансионату Орегон Коуст.' },
+       },
+   };
+   app.get('/staff/:city/:name', function(req, res){
+       var info = staff[req.params.city][req.params.name];
+       if(!info) return next(); // в конечном счете передаст
+                               // управление обработчику кода 404
+       res.render('staffer', info);
+});
+
+// Маршрутизация
+маршрутизация с именованной областью видимости - express-namespace
+ресурсная маршрутизация - express-resource
