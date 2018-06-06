@@ -15,7 +15,9 @@
     "body-parser": "^1.18.2",
     "bootstrap": "^4.1.0",
     "connect": "^3.6.6",
+    "connect-rest": "^3.0.16",
     "cookie-parser": "^1.4.3",
+    "cors": "^2.8.4",
     "express": "^4.16.3",
     "express-handlebars": "^3.0.0",
     "express-logger": "0.0.3",
@@ -38,6 +40,7 @@
     "grunt-exec": "^3.0.0",
     "loadtest": "^3.0.3",
     "mocha": "^5.1.1",
+    "restler": "^3.4.0",
     "zombie": "^6.1.2"
   }
 }

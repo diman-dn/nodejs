@@ -4,6 +4,7 @@ var cart = require('./handlers/cart');
 var login = require('./handlers/login');
 var contest = require('./handlers/contest');
 var newsletter = require('./handlers/newsletter');
+var api = require('./handlers/api');
 
 module.exports = function (app) {
 
@@ -82,5 +83,10 @@ module.exports = function (app) {
         s += 'Cookie.user: ' + req.signedCookies.user + '\n';
         res.send(s);
     });
+
+    // API (Express)
+    app.get('/api/attractions', api.attractions);
+    app.post('/api/attraction', api.attractionAdd);
+    app.get('/api/attraction/:id', api.attractionById);
 
 };

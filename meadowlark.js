@@ -1,5 +1,5 @@
 var express = require('express');
-// var connect = require('connect');
+var connect = require('connect');
 var fortune = require('./lib/fortune');
 var formidable = require('formidable');
 var jqupload = require('jquery-file-upload-middleware');
@@ -8,7 +8,10 @@ var nodemailer = require('nodemailer');
 var mongoose = require('mongoose');
 var fs = require('fs');
 var Vacation = require('./models/vacation');
+var Attraction = require('./models/attraction');
 var vhost = require('vhost');
+// var Rest = require('connect-rest');
+// var bodyParser = require('body-parser');
 
 // Подключение модуля для отправки писем (Nodemailer)
 var emailService = require('./lib/email')(credentials);
@@ -164,6 +167,10 @@ app.use(function (req, res, next) {
     domain.run(next);
 });
 
+// var connectApp = connect()
+//     .use(bodyParser.urlencoded({ extended: true }))
+//     .use(bodyParser.json());
+
 // Инициализация туров в БД
 // Vacation.find(function (err, vacations) {
 //     if(err) return console.error(err);
@@ -236,6 +243,9 @@ fs.existsSync(vacationPhotoDir) || fs.mkdirSync(vacationPhotoDir);
 // CSRF token
 var csrf = new Date().getTime() + Math.random();
 
+// Промежуточное ПО CORS для API
+app.use('/api', require('cors')());
+
 // Проверка авторизации
 function authorize(req, res, next) {
     // console.log(req.signedCookies.user + '\n');
@@ -257,6 +267,66 @@ admin.get('/users', authorize, function (req, res) {
 
 // Подключаем маршруты
 require('./routes')(app);
+
+// REST (connect-rest)
+// Конфигурация REST (connect-rest)
+// var apiOptions = {
+//     context: '/api',
+//     domain: require('domain').create(),
+// };
+// var rest = Rest.create(apiOptions);
+// // Компановка API в конвейер
+// connectApp.use(rest.processRequest());
+// // Маршруты REST
+// rest.get('/attractions', function (req, content, cb) {
+//     Attraction.find({ approved: true }, function (err, attractions) {
+//         if(err) return cb({ error: 'Внутренняя ошибка.' });
+//         cb(null, attractions.map(function (a) {
+//             return {
+//                 name: a.name,
+//                 description: a.description,
+//                 location: a.location,
+//             };
+//         }));
+//     });
+// });
+// rest.post('/attraction', function (req, content, cb) {
+//     var a = new Attraction({
+//         name: req.body.name,
+//         description: req.body.description,
+//         location: { lat: req.body.lat, lng: req.body.lng },
+//         history: {
+//             event: 'created',
+//             email: req.body.email,
+//             date: new Date(),
+//         },
+//         approved: false,
+//     });
+//     a.save(function (err, a) {
+//         if(err) return cb({ error: 'Невозможно добавить достопримечательность.' });
+//         cb(null, { id: a._id });
+//     });
+// });
+// rest.get('/attraction/:id', function (req, content, cb) {
+//     Attraction.findById(req.params.id, function (err, a) {
+//         if(err) return cb({ error: 'Невозможно извлечь достопримечательность.' });
+//         cb(null, {
+//             name: a.name,
+//             description: a.description,
+//             location: a.location,
+//         });
+//     });
+// });
+// apiOptions.domain.on('error', function (err) {
+//     console.log('API domain error.\n', err.stack);
+//     setTimeout(function () {
+//         console.log('Останов сервера после ошибки домена API.');
+//         process.exit(1);
+//     }, 5000);
+//     server.close();
+//     var worker = require('cluster').worker;
+//     if(worker) worker.disconnect();
+// });
 
 // Автоматическа визуализация представлений
 var autoViews = {};
