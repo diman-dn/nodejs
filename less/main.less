@@ -1,0 +1,43 @@
+body {
+  font-family: sans-serif;
+  background-image: static("/img/background.png");
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Header */
+
+ul {
+  list-style: none;
+}
+
+/* jQuery upload file */
+
+.btn-file {
+  position: relative;
+  overflow: hidden;
+}
+.btn-file input[type=file] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 999px;
+  text-align: right;
+  filter: alpha(opacity=0);
+  opacity: 0;
+  outline: none;
+  background: white;
+  cursor: inherit;
+  display: block;
+}
+
+/* CURRENCY */
+a.currency {
+  text-decoration: none;
+}
+.currency.selected {
+  font-weight: bold;
+  font-size: 150%;
+}

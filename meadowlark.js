@@ -1,17 +1,17 @@
-var express = require('express');
-var connect = require('connect');
-var fortune = require('./lib/fortune');
-var formidable = require('formidable');
-var jqupload = require('jquery-file-upload-middleware');
-var credentials = require('./credentials'); // Локальный файл с приватными данными
-var nodemailer = require('nodemailer');
-var mongoose = require('mongoose');
-var fs = require('fs');
-var Vacation = require('./models/vacation');
-var Attraction = require('./models/attraction');
-var vhost = require('vhost');
-// var Rest = require('connect-rest');
-// var bodyParser = require('body-parser');
+var express = require('express'),
+    connect = require('connect'),
+    fortune = require('./lib/fortune'),
+    formidable = require('formidable'),
+    jqupload = require('jquery-file-upload-middleware'),
+    credentials = require('./credentials'), // Локальный файл с приватными данными
+    nodemailer = require('nodemailer'),
+    mongoose = require('mongoose'),
+    fs = require('fs'),
+    Vacation = require('./models/vacation'),
+    Attraction = require('./models/attraction'),
+    vhost = require('vhost');
+    // Rest = require('connect-rest'),
+    // bodyParser = require('body-parser'),
 
 // Подключение модуля для отправки писем (Nodemailer)
 var emailService = require('./lib/email')(credentials);
@@ -56,19 +56,25 @@ switch (app.get('env')){
 }
 
 // Установка механизма представления Handlebars
-var handlebars = require('express-handlebars')
-    .create({
+var handlebars = require('express-handlebars').create({
         defaultLayout: 'main',
         helpers: {
             section: function (name, options) {
                 if (!this._sections) this._sections = {};
                 this._sections[name] = options.fn(this);
                 return null;
+            },
+            static: function (name) {
+                return require('./lib/static.js').map(name);
             }
         }
     }); // Добавить {extname: 'hbs'} для расширений .hbs, вместо .handlebars
 app.engine('handlebars', handlebars.engine);
 app.set('view engine', 'handlebars');
+
+// Настройка css/js bundling
+var bundler = require('connect-bundle')(require('./config.js'));
+app.use(bundler);
 
 app.set('port', process.env.PORT || 3000);
 

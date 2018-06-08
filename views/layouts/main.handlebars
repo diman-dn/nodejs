@@ -3,18 +3,20 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{title}}</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <link href="css/style.css" rel="stylesheet">
     {{#if showTests}}
         <link href="vendor/mocha.css" rel="stylesheet">
     {{/if}}
     {{{_sections.head}}}
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    {{#each _bundles.css}}
+        <link rel="stylesheet" href="{{static .}}">
+    {{/each}}
 </head>
 <body>
 <nav class="navbar justify-content-between navbar-expand-lg navbar-light bg-light">
     <a class="navbar-brand" href="/">
-        <img src="/img/logo.png" alt="logo meadowlark travel" class="d-inline-block align-top" width="120"
+        <img src="{{static '/img/logo.png'}}" alt="Meadowlark Travel logo" class="d-inline-block align-top" width="120"
              height="50">
     </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,10 +52,9 @@
                 <a href="/contest/vacation-photo" class="btn btn-danger">Конкурс</a>
             </li>
         </ul>
-        <form class="form-inline my-2 my-lg-0">
-            <input class="form-control mr-sm-2" type="search" placeholder="Поиск" aria-label="Search">
-            <button class="btn btn-outline-primary my-2 my-sm-0" type="submit">Поиск</button>
-        </form>
+        <ul class="navbar-nav">
+            <li class="nav-item"><a href="/cart"><img src="/img/shop/empty_cart.svg" alt="shopping cart" id="cartIcon"></a></li>
+        </ul>
     </div>
 </nav>
 <div class="wrap">
@@ -94,7 +95,35 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
         integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
         crossorigin="anonymous"></script>
-<script src="/js/script.js"></script>
+{{#each _bundles.js.head}}
+    <script src="{{static .}}"></script>
+{{/each}}
+<script>
+    var Static = {
+        IMG_CART_EMPTY: '{{static '/img/shop/empty_cart.svg'}}',
+        IMG_CART_FULL: '{{static '/img/shop/full_cart.svg'}}'
+    };
+
+    var cart = (function () {
+        var items = Array({{cartItems}});
+        return {
+            items: items,
+            isEmpty: function () {
+                return !items.length;
+            },
+            addItem: function (id) {
+//                console.log(id);
+                items.push(id);
+                $(document).trigger('meadowlark_cart_changed');
+            }
+        };
+    })();
+
+    // Управление изображением корзины
+    $(document).on('meadowlark_cart_changed', function () {
+        $('#cartIcon').attr('src', cart.isEmpty ? Static.IMG_CART_EMPTY : Static.IMG_CART_FULL);
+    });
+</script>
 {{{_sections.jquery}}}
 </body>
 </html>

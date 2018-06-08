@@ -6,7 +6,7 @@
         <p>{{description}}</p>
         {{#if inSeason}}
             <span class="price card-link">{{price}}</span>
-            <a href="/cart/add?sku={{sku}}" class="btn btn-success btn-sm card-link">Заказать</a>
+            <a href="/cart/add?sku={{sku}}" class="btn btn-success btn-sm card-link" onclick="cart.addItem(1)">Заказать</a>
         {{else}}
         <span class="outOfSeason card-link">К сожалению, сейчас не сезон этого тура.</span>
             {{! The "notify me when this vacation is in season"
