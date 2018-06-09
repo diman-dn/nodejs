@@ -3,6 +3,11 @@ var credentials = require('../credentials');
 // Подключение модуля для отправки писем (Nodemailer)
 var emailService = require('../lib/email')(credentials);
 
+// Регулярное выражение для проверки валидности email
+var VALID_EMAIL_REGEX = new RegExp('^[a-zA-Z0-9.!#$%&\'*+\/=?^_`{|}~-]+@' +
+    '[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?' +
+    '(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$');
+
 /**
  * Главная страница корзины
  * @param req
@@ -65,7 +70,7 @@ exports.cartCheckout = function (req, res, next) {
     res.render('cart-checkout');
 };
 
-exports.cartCheckoutPost = function (req, res) {
+exports.cartCheckoutPost = function (req, res, next) {
     var cart = req.session.cart;
     if(!cart) next(new Error('Cart does not exist.'));
     var name = req.body.name || '', email = req.body.email || '';
